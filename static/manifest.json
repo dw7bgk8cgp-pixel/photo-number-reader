@@ -1,11 +1,11 @@
 {
-    "name": "Photo Number Extractor",
+    "name": "Escáner de Números",
     "short_name": "Escáner",
-    "description": "Extraé números de cualquier foto con IA",
+    "description": "Extraer números de fotos con IA",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0a0a0f",
-    "theme_color": "#6c5ce7",
+    "background_color": "#f8fafc",
+    "theme_color": "#2563eb",
     "orientation": "portrait",
     "icons": [
         {
