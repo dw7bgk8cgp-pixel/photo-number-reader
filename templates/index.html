@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📸 Escáner de Números</title>
+    <meta name="description" content="Extraé números de cualquier foto con IA">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Escáner">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">📸</span>
+                <div>
+                    <h1>Photo Number Extractor</h1>
+                    <p class="subtitle">Extraé números de cualquier foto con IA</p>
+                </div>
+            </div>
+            <div class="badge">
+                <span class="badge-dot"></span>
+                Groq Vision AI
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-tabs">
+                    <button class="tab active" data-tab="upload" onclick="switchTab('upload')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Subir Foto
+                    </button>
+                    <button class="tab" data-tab="camera" onclick="switchTab('camera')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        Cámara
+                    </button>
+                </div>
+
+                <!-- Upload Tab -->
+                <div id="tab-upload" class="tab-content active">
+                    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                            </div>
+                            <p class="dropzone-title">Arrastrá una imagen acá</p>
+                            <p class="dropzone-subtitle">o hacé click para seleccionar</p>
+                            <p class="dropzone-formats">PNG, JPG, JPEG, GIF, BMP, WEBP — Máx 10 MB</p>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+
+                <!-- Camera Tab -->
+                <div id="tab-camera" class="tab-content">
+                    <div class="camera-container">
+                        <video id="cameraPreview" autoplay playsinline></video>
+                        <canvas id="cameraCanvas" hidden></canvas>
+                        <div class="camera-controls">
+                            <button class="btn btn-camera" id="btnStartCamera" onclick="startCamera()">
+                                Activar Cámara
+                            </button>
+                            <button class="btn btn-capture" id="btnCapture" onclick="capturePhoto()" hidden>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="12" r="10" />
+                                </svg>
+                                Capturar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div class="preview-container" id="previewContainer" hidden>
+                    <div class="preview-header">
+                        <h3>Vista previa</h3>
+                        <button class="btn btn-ghost" onclick="clearPreview()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                            Limpiar
+                        </button>
+                    </div>
+                    <img id="imagePreview" class="image-preview" alt="Vista previa">
+                    <button class="btn btn-primary btn-extract" id="btnExtract" onclick="extractNumbers()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        Extraer Números
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection" hidden>
+                <div class="results-header">
+                    <h2>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg>
+                        Números Encontrados
+                    </h2>
+                    <div class="results-actions">
+                        <button class="btn btn-ghost" onclick="copyResults()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copiar
+                        </button>
+                    </div>
+                </div>
+                <div class="results-body" id="resultsBody">
+                    <!-- Results will be inserted here -->
+                </div>
+                <div class="results-footer" id="resultsFooter">
+                    <!-- Token usage info -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Install Banner -->
+        <div class="install-banner" id="installBanner" hidden>
+            <div class="install-content">
+                <span class="install-icon">📲</span>
+                <div>
+                    <strong>Instalá la app</strong>
+                    <p>Agregala a tu pantalla de inicio</p>
+                </div>
+            </div>
+            <div class="install-actions">
+                <button class="btn btn-ghost" onclick="dismissInstall()">Ahora no</button>
+                <button class="btn btn-primary" onclick="installApp()">Instalar</button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" hidden>
+            <div class="loading-card">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Analizando imagen con IA...</p>
+                <p class="loading-subtext">Esto puede tardar unos segundos</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFile = null;
+        let currentBase64 = null;
+        let cameraStream = null;
+        let lastResults = null;
+
+        // === Tab Switching ===
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            if (tab !== 'camera' && cameraStream) {
+                stopCamera();
+            }
+        }
+
+        // === File Upload ===
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showToast('Por favor seleccioná una imagen', 'error');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('La imagen es muy grande (máx 10 MB)', 'error');
+                return;
+            }
+            currentFile = file;
+            currentBase64 = null;
+            const reader = new FileReader();
+            reader.onload = (e) => showPreview(e.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        // === Camera ===
+        async function startCamera() {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+                });
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = cameraStream;
+                document.getElementById('btnStartCamera').hidden = true;
+                document.getElementById('btnCapture').hidden = false;
+            } catch (err) {
+                showToast('No se pudo acceder a la cámara: ' + err.message, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraPreview').srcObject = null;
+            document.getElementById('btnStartCamera').hidden = false;
+            document.getElementById('btnCapture').hidden = true;
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            currentBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            currentFile = null;
+            showPreview(currentBase64);
+            stopCamera();
+            switchTab('upload');
+        }
+
+        // === Preview ===
+        function showPreview(src) {
+            document.getElementById('imagePreview').src = src;
+            document.getElementById('previewContainer').hidden = false;
+            document.getElementById('resultsSection').hidden = true;
+        }
+
+        function clearPreview() {
+            document.getElementById('previewContainer').hidden = true;
+            document.getElementById('resultsSection').hidden = true;
+            currentFile = null;
+            currentBase64 = null;
+            fileInput.value = '';
+        }
+
+        // === Extract Numbers ===
+        async function extractNumbers() {
+            const btn = document.getElementById('btnExtract');
+            const overlay = document.getElementById('loadingOverlay');
+            btn.disabled = true;
+            overlay.hidden = false;
+
+            try {
+                let response;
+
+                if (currentFile) {
+                    const formData = new FormData();
+                    formData.append('image', currentFile);
+                    response = await fetch('/extract', { method: 'POST', body: formData });
+                } else if (currentBase64) {
+                    response = await fetch('/extract-base64', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: currentBase64 })
+                    });
+                } else {
+                    showToast('No hay imagen para analizar', 'error');
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (err) {
+                showToast('Error de conexión: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                overlay.hidden = true;
+            }
+        }
+
+        // === Display Results ===
+        function displayResults(result) {
+            const section = document.getElementById('resultsSection');
+            const body = document.getElementById('resultsBody');
+            const footer = document.getElementById('resultsFooter');
+
+            section.hidden = false;
+
+            try {
+                const data = JSON.parse(result.data);
+                lastResults = data;
+
+                if (!data.numeros || data.numeros.length === 0) {
+                    body.innerHTML = `
+                        <div class="no-results">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            <p>No se encontraron números en la imagen</p>
+                        </div>
+                    `;
+                } else {
+                    body.innerHTML = `
+                        <div class="results-count">
+                            <span class="count-number">${data.numeros.length}</span>
+                            <span>número${data.numeros.length !== 1 ? 's' : ''} encontrado${data.numeros.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="results-grid">
+                            ${data.numeros.map((n, i) => `
+                                <div class="result-card" style="animation-delay: ${i * 0.05}s">
+                                    <div class="result-value">${escapeHtml(n.valor)}</div>
+                                    <div class="result-context">${escapeHtml(n.contexto || 'Sin contexto')}</div>
+                                    <button class="btn-copy-single" onclick="copySingle('${escapeHtml(n.valor)}')" title="Copiar">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                footer.innerHTML = `
+                    <div class="token-info">
+                        <span>Modelo: ${result.model || 'llama-3.2-11b-vision'}</span>
+                        <span>Tokens: ${result.tokens?.total || '—'}</span>
+                    </div>
+                `;
+            } catch (e) {
+                body.innerHTML = `
+                    <div class="raw-result">
+                        <pre>${escapeHtml(result.data)}</pre>
+                    </div>
+                `;
+            }
+
+            section.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // === Utilities ===
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function copySingle(value) {
+            navigator.clipboard.writeText(value).then(() => showToast('Copiado: ' + value));
+        }
+
+        function copyResults() {
+            if (!lastResults || !lastResults.numeros) return;
+            const text = lastResults.numeros.map(n => `${n.valor} — ${n.contexto || ''}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => showToast('Todos los números copiados'));
+        }
+
+        function showToast(message, type = 'success') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // === PWA Install ===
+        let deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show install banner
+            const banner = document.getElementById('installBanner');
+            if (banner) banner.hidden = false;
+        });
+
+        function installApp() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choice) => {
+                if (choice.outcome === 'accepted') {
+                    showToast('¡App instalada! Buscala en tu pantalla de inicio');
+                }
+                deferredPrompt = null;
+                document.getElementById('installBanner').hidden = true;
+            });
+        }
+
+        function dismissInstall() {
+            document.getElementById('installBanner').hidden = true;
+        }
+
+        // === Service Worker Registration ===
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('Service Worker registrado'))
+                .catch(err => console.log('SW error:', err));
+        }
+    </script>
+</body>
+
+</html>
